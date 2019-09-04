@@ -11,9 +11,11 @@ type Identifier = String
 data Expr = V Identifier | I Int | B Bool
            | Add Expr Expr | Mul Expr Expr
            | Succ Expr | Pred Expr
-           | Not Expr | And Expr Expr | Or Expr Expr
+           | And Expr Expr | Or Expr Expr
+           | Not Expr
            | Lt Expr Expr | Gt Expr Expr | Eq Expr Expr
-           | If Expr Expr Expr | Let Identifier Expr Expr
+           | If Expr Expr Expr
+           | Let Identifier Expr Expr
            deriving (Eq)
 
 {--
@@ -49,7 +51,7 @@ type Substitution = (Identifier, Expr)
 frVars :: Expr -> [Identifier]
 frVars (V x) = [x]
 frVars (I n) = []
-frVars (B n) = []
+frVars (B b) = []
 frVars (Add e1 e2) = union (frVars e1) (frVars e2)
 frVars (Mul e1 e2) = union (frVars e1) (frVars e2)
 frVars (Succ e) = (frVars e)
@@ -86,9 +88,11 @@ subst (Lt e1 e2) s = Lt (subst e1 s) (subst e2 s)
 subst (Gt e1 e2) s = Gt (subst e1 s) (subst e2 s)
 subst (Eq e1 e2) s = Eq (subst e1 s) (subst e2 s)
 subst (If e1 e2 e3) s = If (subst e1 s) (subst e2 s) (subst e3 s)
-subst (Let z e1 e2) (x,r) = if ((x /= z) && (notElem z (frVars r)))
-                            then Let z (subst e1 (x,r)) (subst e2 (x,r))
-                            else error "Could not apply the substitution."
+subst (Let z e1 e2) es@(x,r) = if x == z
+                               then Let z (subst e1 es) e2
+                               else if (notElem z (frVars r))
+                                    then Let z (subst e1 es) (subst e2 es)
+                                    else error "Could not apply the substitution."
 
 {--
    3) alphaEq: Dadas dos expresiones nos dice sí son alfa equivalentes, es decir
@@ -96,13 +100,9 @@ subst (Let z e1 e2) (x,r) = if ((x /= z) && (notElem z (frVars r)))
    riables ligadas.
 -}
 alphaEq :: Expr -> Expr -> Bool
-alphaEq (V x) (V y) = True
-alphaEq (I n) (I m) = if n == m
-                      then True
-                      else False
-alphaEq (B b) (B c) = if b == c
-                      then True
-                      else False
+alphaEq (V x) (V y) = True -- Aquí que pedo???
+alphaEq (I n) (I m) = n == m
+alphaEq (B b) (B c) = b == c
 alphaEq e@(Add e1 e2) f@(Add f1 f2) = ((frVars e) == (frVars f)) && (alphaEq e1 f1) && (alphaEq e2 f2)
 alphaEq e@(Mul e1 e2) f@(Mul f1 f2) = ((frVars e) == (frVars f)) && (alphaEq e1 f1) && (alphaEq e2 f2)
 alphaEq e@(Succ e1) f@(Succ f1) = ((frVars e) == (frVars f)) && (alphaEq e1 f1)
