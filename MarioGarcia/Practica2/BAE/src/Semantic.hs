@@ -10,8 +10,8 @@ import Sintax
 
 eval1 :: Expr -> Expr
 eval1 (V x) = error "Have a free variable in the evaluation."
-eval1 (I n) = I n
-eval1 (B b) = B b
+eval1 (I n) = error "Parse error in the parameters"
+eval1 (B b) = error "Parse error in the parameters"
 
 -- Evaluación de Add.
 
@@ -125,7 +125,7 @@ evals expr = if (eval1 expr) == expr
 eval :: Expr -> Expr
 eval expr = if final(evals expr)
             then evals expr
-            else error "Parse error in the parameters."
+            else error "Parse error in parameters."
 
 final :: Expr -> Bool
 final (I n) = True
