@@ -114,8 +114,6 @@ eval1 (Let x e1 e2) = Let x (eval1 e1) e2
 evals :: Expr -> Expr
 evals (I n) = (I n)
 evals (B b) = (B b)
-
--- Estrella de la evaluación para Add.
 evals expr = if (eval1 expr) == expr
              then expr
              else evals(eval1(expr))
@@ -127,9 +125,38 @@ evals expr = if (eval1 expr) == expr
 eval :: Expr -> Expr
 eval expr = if final(evals expr)
             then evals expr
-            else error "Parse error in exit."
+            else error "Parse error in the parameters."
 
 final :: Expr -> Bool
 final (I n) = True
 final (B b) = True
 final e = False
+
+-- Semántica estática.
+
+data Type = Integer | Boolean deriving(Eq)
+
+type Decl = (Identifier, Type)
+type TypCtxt = [Decl]
+
+vt :: TypCtxt -> Expr -> Type -> Bool
+vt [] (V x) t = False
+vt ((x,t):xs) (V x1) t1 = if x == x1 && t == t1
+                          then True
+                          else vt xs (V x1) t1
+vt _ (I n) t = t == Integer
+vt _ (B b) t = t == Boolean
+vt c (Add e1 e2) Integer = (vt c e1 Integer) && (vt c e2 Integer)
+vt c (Mul e1 e2) Integer = (vt c e1 Integer) && (vt c e2 Integer)
+vt c (Succ e) Integer = (vt c e Integer)
+vt c (Pred e) Integer = (vt c e Integer)
+vt c (And e1 e2) Boolean = (vt c e1 Boolean) && (vt c e2 Boolean)
+vt c (Or e1 e2) Boolean = (vt c e1 Boolean) && (vt c e2 Boolean)
+vt c (Not e) Boolean = (vt c e Boolean)
+vt c (Lt e1 e2) Boolean = (vt c e1 Integer) && (vt c e2 Integer)
+vt c (Gt e1 e2) Boolean = (vt c e1 Integer) && (vt c e2 Integer)
+vt c (Eq e1 e2) Boolean = (vt c e1 Integer) && (vt c e2 Integer)
+vt c (If b et ef) t = (vt c b Boolean) && (vt c et t) && (vt c ef t)
+vt c (Let x e1 e2) s = if (vt c e1 Integer)
+                        then vt ((x,Integer):c) e2 s
+                        else vt ((x,Boolean):c) e2 s
